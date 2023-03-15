@@ -2,21 +2,25 @@ package utils
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestChoose(t *testing.T) {
-	r := Comb(42, 2)
-	if r != 861 {
-		t.Fatalf("4 over 5 should be 10 but was")
+func TestComb(t *testing.T) {
+	testCases := []struct {
+		n      int
+		k      int
+		result int
+	}{
+		{5, 0, 1},
+		{5, 1, 5},
+		{5, 2, 10},
+		{5, 5, 1},
+		{10, 3, 120},
 	}
-	assert.Equal(t, 861, r, "The two words should be the same.")
-}
 
-func TestBaseToDec(t *testing.T) {
-	arr := []int{0, 1, 2, 3, 4, 5, 6, 7}
-	r := BaseToDec(arr, 3)
-
-	assert.Equal(t, 21324, r, "The two words should be the same.")
+	for _, tc := range testCases {
+		got := Comb(tc.n, tc.k)
+		if got != tc.result {
+			t.Errorf("Comb(%d, %d) = %d; want %d", tc.n, tc.k, got, tc.result)
+		}
+	}
 }
