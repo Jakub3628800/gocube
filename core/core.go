@@ -1,12 +1,34 @@
 package core
 
-import (
-	"cube/utils"
-	"fmt"
-)
+import "fmt"
+
+// Cube state
+type Cube struct {
+	CornerPermutation [8]uint8
+	CornerOrientation [8]uint8
+	EdgePermutation   [12]uint8
+	EdgeOrientation   [12]uint8
+}
+
+func NewCube() Cube {
+	return Cube{
+		CornerPermutation: [8]uint8{0, 1, 2, 3, 4, 5, 6, 7},
+		CornerOrientation: [8]uint8{0, 0, 0, 0, 0, 0, 0, 0},
+		EdgePermutation:   [12]uint8{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+		EdgeOrientation:   [12]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+	}
+}
+
+// Move that changes cube state
+type Move struct {
+	F string // r, l, f, b, u, d
+	N uint8  // 1, 2, 3
+
+}
 
 var moveTables map[string][4][4]uint8
 
+// moveTables decribe how the cube changes when a move is applied
 func InitMoveTables() {
 	moveTables = make(map[string][4][4]uint8)
 
@@ -19,61 +41,7 @@ func InitMoveTables() {
 
 }
 
-type Cube struct {
-	CornerPermutation [8]uint8
-	CornerOrientation [8]uint8
-	EdgePermutation   [12]uint8
-	EdgeOrientation   [12]uint8
-}
-
-type Move struct {
-	F string // r, l, f, b, u, d
-	N uint8  // 1, 2, 3
-
-}
-
-func NewCube() Cube {
-	return Cube{
-		CornerPermutation: [8]uint8{0, 1, 2, 3, 4, 5, 6, 7},
-		CornerOrientation: [8]uint8{0, 0, 0, 0, 0, 0, 0, 0},
-		EdgePermutation:   [12]uint8{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
-		EdgeOrientation:   [12]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	}
-}
-
-// return hash of cube object.
-func (c *Cube) hash() string {
-	// hash corner orientation
-
-	return "s"
-}
-
-// is the cube solved?
-func (c *Cube) solved() bool {
-	return true
-}
-
-func createCopy(src Cube) Cube {
-	dst := Cube{
-		CornerPermutation: src.CornerPermutation,
-		CornerOrientation: src.CornerOrientation,
-		EdgePermutation:   src.EdgePermutation,
-		EdgeOrientation:   src.EdgeOrientation,
-	}
-	return dst
-}
-
-func CreateCopyWithmove(src Cube, move Move) Cube {
-	copy := createCopy(src)
-	copy.MakeMove(move)
-	return copy
-}
-
-func (c *Cube) phase1Solved() bool {
-	return c.CornerOrientationCoordinate()+c.EdgeOrientationCoordinate() == 0
-}
-
-// apply a move to cube
+// Apply a move to cube
 func (cb *Cube) Move(move string, nr int) {
 
 	var t uint8
@@ -83,7 +51,6 @@ func (cb *Cube) Move(move string, nr int) {
 	et := moveTables[move][3]
 
 	for i := 0; i < nr; i++ {
-
 		t = cb.CornerPermutation[c[0]]
 		cb.CornerPermutation[c[0]] = cb.CornerPermutation[c[1]]
 		cb.CornerPermutation[c[1]] = cb.CornerPermutation[c[2]]
@@ -109,23 +76,16 @@ func (cb *Cube) Move(move string, nr int) {
 		cb.EdgeOrientation[e[3]] = (t + et[3]) % 2
 	}
 }
-func (cb *Cube) MakeMove(move Move) Cube {
-	var result Cube
-	result.Move(move.F, int(move.N))
-	return result
+
+// Calculate binomial coefficient -  n choose k
+func Comb(n int, k int) int {
+	if k == 0 {
+		return 1
+	}
+	return (n * Comb(n-1, k-1)) / k
 }
 
-func (c *Cube) Print() {
-	fmt.Println("================================")
-	fmt.Println("cper", c.CornerPermutation)
-	fmt.Println("cor ", c.CornerOrientation)
-	fmt.Println("eper", c.EdgePermutation)
-	fmt.Println("eor ", c.EdgeOrientation)
-	fmt.Println()
-}
-
-// return value of corner orientation coordinate
-func (c *Cube) CornerOrientationCoordinate() int {
+func CornerOrientationCoordinate(c *Cube) int {
 	result := 0
 	multiplier := 1
 
@@ -136,8 +96,7 @@ func (c *Cube) CornerOrientationCoordinate() int {
 	return result
 }
 
-// return value of edge orientation coordinate
-func (c *Cube) EdgeOrientationCoordinate() int {
+func EdgeOrientationCoordinate(c *Cube) int {
 	result := 0
 	multiplier := 1
 	for i := 0; i < 12; i++ {
@@ -147,8 +106,7 @@ func (c *Cube) EdgeOrientationCoordinate() int {
 	return result
 }
 
-// return value of uds coordinate
-func (c *Cube) UdsCoordinate() int {
+func UdsCoordinate(c *Cube) int {
 	k := -1
 	result := 0
 	var val uint8
@@ -158,19 +116,70 @@ func (c *Cube) UdsCoordinate() int {
 			k += 1
 
 		} else if k > 0 {
-			result += utils.Comb(i, k)
+			result += Comb(i, k)
 		}
 
 	}
 	return result
 }
 
-func (c *Cube) PrintCoordinates() {
-	fmt.Println("cor coordinate", c.CornerOrientationCoordinate())
-	fmt.Println("eor coordinate", c.EdgeOrientationCoordinate())
-	fmt.Println("uds coordinate", c.UdsCoordinate())
-	fmt.Println("phase1 solved", c.phase1Solved())
+func phase1Solved(c *Cube) bool {
+	return (CornerOrientationCoordinate(c) == 0) && (EdgeOrientationCoordinate(c) == 0)
 }
+
+func PrintCube(c *Cube) {
+	fmt.Println("=== Cube State =================")
+	fmt.Println("cper", c.CornerPermutation)
+	fmt.Println("cor ", c.CornerOrientation)
+	fmt.Println("eper", c.EdgePermutation)
+	fmt.Println("eor ", c.EdgeOrientation)
+	fmt.Println("================================")
+	fmt.Println()
+}
+
+func PrintCoordinates(c *Cube) {
+	fmt.Println("=== Coordinates ================")
+	fmt.Println("cor coordinate", CornerOrientationCoordinate(c))
+	fmt.Println("eor coordinate", EdgeOrientationCoordinate(c))
+	fmt.Println("uds coordinate", UdsCoordinate(c))
+	fmt.Println("phase1 solved", phase1Solved(c))
+	fmt.Println("================================")
+	fmt.Println()
+}
+
+//func (cb *Cube) MakeMove(move Move) Cube {
+//	var result Cube
+//	result.Move(move.F, int(move.N))
+//	return result
+//}
+
+//// return hash of cube object.
+//func (c *Cube) hash() string {
+//	// hash corner orientation
+//
+//	return "s"
+//}
+
+// // is the cube solved?  TODO: not implemented
+// func (c *Cube) solved() bool {
+// 	return true
+// }
+
+//func createCopy(src Cube) Cube {
+//	dst := Cube{
+//		CornerPermutation: src.CornerPermutation,
+//		CornerOrientation: src.CornerOrientation,
+//		EdgePermutation:   src.EdgePermutation,
+//		EdgeOrientation:   src.EdgeOrientation,
+//	}
+//	return dst
+//}
+//
+//func CreateCopyWithmove(src Cube, move Move) Cube {
+//	copy := createCopy(src)
+//	copy.MakeMove(move)
+//	return copy
+//}
 
 //func GenerateTablesPhase1() {
 //
