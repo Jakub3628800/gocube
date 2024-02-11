@@ -1,25 +1,37 @@
 package tables
 
 import (
+	"cube/core"
 	"encoding/gob"
+	"log"
 	"os"
 )
+
+var logger *log.Logger
+
+func init() {
+	logger = log.New(os.Stdout, "tables: ", log.LstdFlags)
+}
 
 // indexed as [cor][eor][udslice] ~ 2,2 GB
 type phase1Table [2187][2048][495]uint8
 
 // init table with zeros, save to a file.
-func Initphase1Table() error {
+func Initphase1Table(save bool) (*phase1Table, error) {
+	logger.Println("Initializing phase1 table")
 	table := phase1Table{}
-	err := SavePhase1Table("phase1.gob", &table)
-	if err != nil {
-		return err
+	if save {
+		err := SavePhase1Table("phase1.gob", &table)
+		if err != nil {
+			return &table, err
+		}
 	}
-	return nil
+	return &table, nil
 }
 
 func SavePhase1Table(filename string, table *phase1Table) error {
 
+	logger.Println("Saving phase1 table")
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -30,10 +42,12 @@ func SavePhase1Table(filename string, table *phase1Table) error {
 	if err := encoder.Encode(&table); err != nil {
 		return err
 	}
+	logger.Println("Phase1 table saved")
 	return nil
 }
 
 func LoadPhase1Table(filename string) (*phase1Table, error) {
+	logger.Println("Loading phase1 table")
 
 	table := phase1Table{}
 	file, err := os.Open(filename)
@@ -46,17 +60,18 @@ func LoadPhase1Table(filename string) (*phase1Table, error) {
 	if err := decoder.Decode(&table); err != nil {
 		return &table, err
 	}
+	logger.Println("Loading phase1 table finished")
 	return &table, nil
 }
 
-//func insertphase1TableItem(item MoveItem, lenMoves uint8, table *phase1Table) {
-//	cor := item.cube.CornerOrientationCoordinate()
-//	eor := item.cube.EdgeOrientationCoordinate()
-//	udslice := item.cube.UdsCoordinate()
-//
-//	table[cor][eor][udslice] = lenMoves
-//
-//}
+func Insertphase1TableItem(cube *core.Cube, lenMoves uint8, table *phase1Table) {
+	cor := core.CornerOrientationCoordinate(cube)
+	eor := core.EdgeOrientationCoordinate(cube)
+	udslice := core.UdsCoordinate(cube)
+
+	table[cor][eor][udslice] = lenMoves
+}
+
 //
 //type MoveItem struct {
 //	cube             core.Cube

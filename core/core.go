@@ -41,6 +41,10 @@ func InitMoveTables() {
 
 }
 
+func init() {
+	InitMoveTables()
+}
+
 // Apply a move to cube
 func (cb *Cube) Move(move string, nr int) {
 
@@ -89,9 +93,12 @@ func CornerOrientationCoordinate(c *Cube) int {
 	result := 0
 	multiplier := 1
 
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 7; i++ {
 		result += int(c.CornerOrientation[i]) * multiplier
 		multiplier = multiplier * 3
+		//fmt.Println(result)
+		//fmt.Println(multiplier, i, result)
+		fmt.Println(c.CornerOrientation[i])
 	}
 	return result
 }

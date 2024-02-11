@@ -20,3 +20,10 @@ Run:
 ```bash
 golangci-lint run
 ```
+
+
+## Test
+
+```bash
+go test -v ./...
+```
