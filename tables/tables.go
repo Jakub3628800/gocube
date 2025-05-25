@@ -16,18 +16,126 @@ func init() {
 // indexed as [cor][eor][udslice] ~ 2,2 GB
 type phase1Table [2187][2048][495]uint8
 
-// init table with zeros, save to a file.
+// init table with 255 (unvisited), save to a file if requested.
 func Initphase1Table(save bool) (*phase1Table, error) {
-	logger.Println("Initializing phase1 table")
-	table := phase1Table{}
+	logger.Println("Initializing phase1 table with 255")
+	var table phase1Table // Use var to allocate on the heap if it's too large for stack, though Go might do this anyway for large arrays.
+	// Iterate and set all values to 255
+	for i := range table {
+		for j := range table[i] {
+			for k := range table[i][j] {
+				table[i][j][k] = 255
+			}
+		}
+	}
+	logger.Println("Finished initializing phase1 table with 255")
+
 	if save {
-		err := SavePhase1Table("phase1.gob", &table)
+		// Note: Saving a 2.2GB file of 255s might be slow and not very useful
+		// unless it's a specific requirement for some external tool.
+		// Consider if saving an unpopulated table is truly needed.
+		logger.Println("Save flag is true, proceeding to save initialized table.")
+		err := SavePhase1Table("phase1_initialized.gob", &table)
 		if err != nil {
+			logger.Printf("Error saving initialized phase1 table: %v", err)
 			return &table, err
 		}
+		logger.Println("Initialized phase1 table saved.")
 	}
 	return &table, nil
 }
+
+// BFSState holds the cube state and its depth for the BFS queue.
+type BFSState struct {
+	cube  core.Cube
+	depth uint8
+}
+
+// GeneratePhase1PruningTable creates the pruning table using BFS.
+// maxSearchDepth is the maximum depth of moves stored in the table.
+func GeneratePhase1PruningTable(maxSearchDepth uint8) (*phase1Table, error) {
+	table, err := Initphase1Table(false) // Initialize table with 255s, don't save it yet.
+	if err != nil {
+		logger.Printf("Error initializing phase1 table for generation: %v", err)
+		return nil, err
+	}
+
+	logger.Println("Starting Phase 1 Pruning Table generation...")
+
+	initialCube := core.NewCube()
+	co := core.CornerOrientationCoordinate(&initialCube) // Should be 0 for solved state
+	eo := core.EdgeOrientationCoordinate(&initialCube)   // Should be 0 for solved state
+	us := core.UdsCoordinate(&initialCube)               // Should be 494 for solved state (C(11,4)+C(10,3)+C(9,2)+C(8,1) based on typical Kociemba)
+
+	// Ensure initial coordinates are within table bounds
+	if co >= 2187 || eo >= 2048 || us >= 495 {
+		logger.Fatalf("Initial coordinates out of bounds: co=%d, eo=%d, us=%d", co, eo, us)
+		// os.Exit(1) or return error
+	}
+	
+	if table[co][eo][us] == 255 { // Check if the solved state is unvisited (it should be)
+		table[co][eo][us] = 0 // Depth of solved state is 0
+	} else {
+		// This case should ideally not happen if Initphase1Table correctly sets to 255
+		logger.Printf("Warning: Solved state was already visited or not 255. table[%d][%d][%d] = %d", co, eo, us, table[co][eo][us])
+		// If it's not 0, something is wrong. For safety, set to 0 if allowing continuation.
+		table[co][eo][us] = 0 
+	}
+
+
+	queue := []BFSState{{cube: initialCube, depth: 0}}
+	visitedCount := 1
+
+	logger.Printf("Initial state: CO=%d, EO=%d, US=%d, Depth=0. Queue size: %d", co, eo, us, len(queue))
+
+
+	processedStates := 0 // Counter for logging progress
+
+	for len(queue) > 0 {
+		currentState := queue[0]
+		queue = queue[1:] // Dequeue
+
+		currentDepth := currentState.depth
+		processedStates++
+
+		if processedStates%100000 == 0 { // Log progress every 100,000 states processed
+			logger.Printf("Processed %d states. Current depth: %d, Queue size: %d, Visited count: %d", processedStates, currentDepth, len(queue), visitedCount)
+		}
+		
+		// If current state's depth is already maxSearchDepth, we don't explore its children
+		// because their depth would be maxSearchDepth + 1, which is beyond what we want to store.
+		if currentDepth >= maxSearchDepth {
+			continue
+		}
+
+		for _, move := range core.P1Moves {
+			newCube := currentState.cube // Create a copy
+			newCube.Move(move.F, int(move.N))
+
+			nco := core.CornerOrientationCoordinate(&newCube)
+			neo := core.EdgeOrientationCoordinate(&newCube)
+			nus := core.UdsCoordinate(&newCube)
+			
+			// Ensure new coordinates are within table bounds
+			if nco >= 2187 || neo >= 2048 || nus >= 495 {
+				logger.Printf("Warning: New coordinates out of bounds: nco=%d, neo=%d, nus=%d for move %v from depth %d. Skipping.", nco, neo, nus, move, currentDepth)
+				continue 
+			}
+
+			newDepth := currentDepth + 1 // Children are one level deeper
+
+			if table[nco][neo][nus] == 255 { // If unvisited
+				table[nco][neo][nus] = newDepth
+				queue = append(queue, BFSState{cube: newCube, depth: newDepth})
+				visitedCount++
+			}
+		}
+	}
+
+	logger.Printf("Phase 1 Pruning Table generation complete. Visited states: %d. Processed states: %d", visitedCount, processedStates)
+	return table, nil
+}
+
 
 func SavePhase1Table(filename string, table *phase1Table) error {
 

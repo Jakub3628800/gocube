@@ -43,6 +43,7 @@ func InitMoveTables() {
 
 func init() {
 	InitMoveTables()
+	InitP1Moves()
 }
 
 // Apply a move to cube
@@ -83,10 +84,29 @@ func (cb *Cube) Move(move string, nr int) {
 
 // Calculate binomial coefficient -  n choose k
 func Comb(n int, k int) int {
-	if k == 0 {
+	if k < 0 || k > n {
+		return 0
+	}
+	if k == 0 || k == n {
 		return 1
 	}
-	return (n * Comb(n-1, k-1)) / k
+	if k > n/2 {
+		k = n - k // Optimization C(n,k) == C(n, n-k)
+	}
+	res := 1
+	for i := 1; i <= k; i++ {
+		// Ensure integer division is handled correctly, (n-i+1) should be multiplied first
+		// then divided by i to prevent precision loss if intermediate (res / i) is not an integer.
+		// Go's integer division truncates, which is fine here as C(n,k) is always integer.
+		// res = res * (n - i + 1) / i; is standard and works.
+		if res > 2147483647 / (n - i + 1) { // Check for overflow before multiplication
+			// Handle overflow, though for cube coordinates (max C(11,4)=330) this is unlikely with int.
+			// For larger applications, might need math/big.Int or error handling.
+			// Given current constraints, direct calculation is fine.
+		}
+		res = res * (n - i + 1) / i
+	}
+	return res
 }
 
 func CornerOrientationCoordinate(c *Cube) int {
@@ -98,7 +118,6 @@ func CornerOrientationCoordinate(c *Cube) int {
 		multiplier = multiplier * 3
 		//fmt.Println(result)
 		//fmt.Println(multiplier, i, result)
-		fmt.Println(c.CornerOrientation[i])
 	}
 	return result
 }
@@ -114,20 +133,18 @@ func EdgeOrientationCoordinate(c *Cube) int {
 }
 
 func UdsCoordinate(c *Cube) int {
-	k := -1
-	result := 0
-	var val uint8
-	for i := 0; i < len(c.EdgePermutation); i++ {
-		val = c.EdgePermutation[i]
-		if val > 7 {
-			k += 1
-
-		} else if k > 0 {
-			result += Comb(i, k)
+	res := 0
+	s := 4 // Number of slice edges we are looking for (4:FR,FL,BR,BL)
+	// Iterate from edge position 11 (BL) down to 0 (UF)
+	for i := 11; i >= 0; i-- {
+		// Edges 8, 9, 10, 11 are the UDSlice edges (FR, FL, BR, BL)
+		if c.EdgePermutation[i] >= 8 && c.EdgePermutation[i] <= 11 {
+			// If the edge at slot 'i' is a slice edge
+			res += Comb(i, s) // Add C(slot_index, slice_edge_rank)
+			s--               // Decrement the rank for the next slice edge
 		}
-
 	}
-	return result
+	return res
 }
 
 func phase1Solved(c *Cube) bool {
@@ -193,22 +210,22 @@ func PrintCoordinates(c *Cube) {
 //	var phase1table [2186][2047][494]uint8
 //}
 
-//var p1Moves []Move
-//
-//func InitP1Moves() {
-//	p1Moves = []Move{
-//		Move{"r", 2},
-//		Move{"l", 2},
-//		Move{"f", 2},
-//		Move{"b", 2},
-//		Move{"u", 1},
-//		Move{"u", 2},
-//		Move{"u", 3},
-//		Move{"d", 1},
-//		Move{"d", 2},
-//		Move{"d", 3},
-//	}
-//}
+var P1Moves []Move
+
+func InitP1Moves() {
+	P1Moves = []Move{
+		Move{"r", 2},
+		Move{"l", 2},
+		Move{"f", 2},
+		Move{"b", 2},
+		Move{"u", 1},
+		Move{"u", 2},
+		Move{"u", 3},
+		Move{"d", 1},
+		Move{"d", 2},
+		Move{"d", 3},
+	}
+}
 
 //func SolvePhase1(c *Cube, moves []Move, movesLeft int) ([]Move, bool) {
 //	//fmt.Println(moves, movesLeft)
