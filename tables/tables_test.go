@@ -22,7 +22,7 @@ func TestInsertphase1TableItem(t *testing.T) {
 	c.Move("b", 1)
 	c.Move("d", 1)
 	Insertphase1TableItem(&c, uint8(3), table)
-	if table[52][802][30] != 3 {
+	if table[1314][1048][303] != 3 {
 		t.Error("table wasn't updated")
 	}
 }
