@@ -6,8 +6,10 @@ import (
 )
 
 func TestInitphase1Table(t *testing.T) {
-	Initphase1Table(false)
-	//LoadPhase1Table("phase1.gob")
+        if _, err := Initphase1Table(false); err != nil {
+                t.Fatal(err)
+        }
+        //LoadPhase1Table("phase1.gob")
 
 }
 

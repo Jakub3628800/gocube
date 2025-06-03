@@ -21,12 +21,9 @@ func Solve(state string, depth int) ([]int, error) {
 }
 
 func idaStar(c *CubieCube, depth, maxDepth int, path *[]int) bool {
-	if depth == maxDepth {
-		if isSolved(c) {
-			return true
-		}
-		return false
-	}
+        if depth == maxDepth {
+                return isSolved(c)
+        }
 	for _, m := range moves {
 		next := *c
 		next.Move(m)
