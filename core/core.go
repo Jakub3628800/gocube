@@ -96,9 +96,7 @@ func CornerOrientationCoordinate(c *Cube) int {
 	for i := 0; i < 7; i++ {
 		result += int(c.CornerOrientation[i]) * multiplier
 		multiplier = multiplier * 3
-		//fmt.Println(result)
-		//fmt.Println(multiplier, i, result)
-		fmt.Println(c.CornerOrientation[i])
+		// coefficients are interpreted in base-3
 	}
 	return result
 }
@@ -106,7 +104,7 @@ func CornerOrientationCoordinate(c *Cube) int {
 func EdgeOrientationCoordinate(c *Cube) int {
 	result := 0
 	multiplier := 1
-	for i := 0; i < 12; i++ {
+	for i := 0; i < 11; i++ {
 		result += int(c.EdgeOrientation[i]) * multiplier
 		multiplier = multiplier * 2
 	}

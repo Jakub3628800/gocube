@@ -158,12 +158,12 @@ type coordinateTestCase struct {
 
 func TestCornerOrientationCoordinate(t *testing.T) {
 	testCases := []coordinateTestCase{
-		coordinateTestCase{"r", 4651},
+		coordinateTestCase{"r", 276},
 		//coordinateTestCase{"l", 1550},
 		//coordinateTestCase{"u", 0},
 		//coordinateTestCase{"d", 0},
 		//coordinateTestCase{"f", 52},
-		//coordinateTestCase{"b", 4212},
+		//coordinateTestCase{"b", 2025},
 	}
 	for _, testCase := range testCases {
 		c := NewCube()
@@ -182,7 +182,7 @@ func TestEdgeOrientationCoordinate(t *testing.T) {
 		coordinateTestCase{"u", 0},
 		coordinateTestCase{"d", 0},
 		coordinateTestCase{"f", 802},
-		coordinateTestCase{"b", 3208},
+		coordinateTestCase{"b", 1160},
 	}
 	for _, testCase := range testCases {
 		c := NewCube()

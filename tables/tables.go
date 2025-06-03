@@ -32,11 +32,15 @@ func Initphase1Table(save bool) (*phase1Table, error) {
 func SavePhase1Table(filename string, table *phase1Table) error {
 
 	logger.Println("Saving phase1 table")
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+        file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+        if err != nil {
+                return err
+        }
+        defer func() {
+                if cerr := file.Close(); cerr != nil && err == nil {
+                        err = cerr
+                }
+        }()
 
 	encoder := gob.NewEncoder(file)
 	if err := encoder.Encode(&table); err != nil {
@@ -49,12 +53,16 @@ func SavePhase1Table(filename string, table *phase1Table) error {
 func LoadPhase1Table(filename string) (*phase1Table, error) {
 	logger.Println("Loading phase1 table")
 
-	table := phase1Table{}
-	file, err := os.Open(filename)
-	if err != nil {
-		return &table, err
-	}
-	defer file.Close()
+        table := phase1Table{}
+        file, err := os.Open(filename)
+        if err != nil {
+                return &table, err
+        }
+        defer func() {
+                if cerr := file.Close(); cerr != nil && err == nil {
+                        err = cerr
+                }
+        }()
 	//
 	decoder := gob.NewDecoder(file)
 	if err := decoder.Decode(&table); err != nil {
